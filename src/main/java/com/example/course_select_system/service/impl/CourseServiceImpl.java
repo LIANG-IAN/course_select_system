@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.sql.Time;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -86,6 +85,7 @@ public class CourseServiceImpl implements CourseService {
       oldCourse.setStartTime(course.getStartTime());
     }
     // 更新課程結束時間
+    // 注意下課時間不得小於上課時間
     if (course.getEndTime().getHour() > oldCourse.getStartTime().getHour()
             && course.getEndTime().getHour() <= 17
             && !course.getEndTime().equals(oldCourse.getEndTime())) {
@@ -135,11 +135,11 @@ public class CourseServiceImpl implements CourseService {
       return new CourseResponse(RtnCode.STUDENT_NOT_EXIST_ERROR.getMessage());
     }
     Student thisStudent = opStudent.get();
-    // 建立回傳專用Student
     for (String s : courseCode) {
       // 檢查輸入的課程名稱
       if (!StringUtils.hasText(s)) {
-        return new CourseResponse(RtnCode.INCORRECT_COURSE_NAME_ERROR.getMessage());
+        // 檢查輸入的課程代碼是否為空
+        return new CourseResponse(RtnCode.COURSE_CODE_ERROR.getMessage());
       }
       // 搜尋該課程是否存在
       Optional<Course> opCourse = courseDao.findById(s);
@@ -152,17 +152,22 @@ public class CourseServiceImpl implements CourseService {
         return new CourseResponse(RtnCode.COURSE_FULL_ERROR.getMessage());
       }
       // 檢查學生是否學分超過10
-      if (thisStudent.getCredit() + course.getCredits() > 10) {
-        return new CourseResponse(RtnCode.CREDIT_OVER_LIMIT_COURSE_ERROR.getMessage());
+      int credit = thisStudent.getCredit() + course.getCredits();
+      if (credit > 10) {
+        return new CourseResponse(RtnCode.CREDIT_OVER_LIMIT_ERROR.getMessage());
       }
       // 檢查選課是否衝堂
       // 取得學生已選修課程代碼名單
       List<StudentCourseCodes> selectedCourses = studentCourseCodesDao.findCourseCodesByStudentId(studentId);
+      // 課程代碼為空代表無選修任何課程，直接跳過for迴圈
       if (selectedCourses != null) {
         for (StudentCourseCodes sc : selectedCourses) {
+          // 檢查課程代碼不為空
           if (sc != null) {
             String strSelectedCourses = sc.getCourseCode();
-            Course c = courseDao.findById(strSelectedCourses).get();
+            //檢查資料庫取出的資料
+            Optional<Course> optionalCourse = courseDao.findById(strSelectedCourses);
+            Course c = optionalCourse.get();
             // 取得已選修的課程星期
             int dayOfWeek = c.getDayOfWeek();
             // 取得欲選修的課程星期
@@ -175,6 +180,7 @@ public class CourseServiceImpl implements CourseService {
               // 取的欲選修課程上下課時間
               LocalTime courseStartTime = course.getStartTime();
               LocalTime courseEndTime = course.getEndTime();
+              // 檢查上下課時間是否與選修中課程衝堂
               if (!(startTime.getHour() >= courseEndTime.getHour())
                       && !(endTime.getHour() <= courseStartTime.getHour())) {
                 return new CourseResponse(RtnCode.DUPLICATE_COURSE_TIME_ERROR.getMessage());
@@ -193,10 +199,6 @@ public class CourseServiceImpl implements CourseService {
       studentCourseCodes.setStudentId(studentId);
       studentCourseCodes.setCourseCode(course.getCourseCode());
       // 添加學分至選修學生資料庫
-      int credit = thisStudent.getCredit() + course.getCredits();
-      if (credit > 10) {
-        return new CourseResponse(RtnCode.CREDIT_OVER_LIMIT_ERROR.getMessage());
-      }
       thisStudent.setCredit(credit);
       // 更新選課代碼至資料庫
       studentCourseCodesDao.save(studentCourseCodes);
@@ -226,6 +228,7 @@ public class CourseServiceImpl implements CourseService {
     Student student = opStudent.get();
     // 獲得學生修課課程代碼
     StudentCourseCodes s = studentCourseCodesDao.findByStudentIdAndCourseCode(studentId, courseCode);
+    // 檢查是否有選修該堂課
     if (s == null) {
       return new CourseResponse(RtnCode.NOT_SELECTED_ERROR.getMessage());
     }
@@ -253,7 +256,7 @@ public class CourseServiceImpl implements CourseService {
     List<StudentCourseCodes> studentCourseCodesList = studentCourseCodesDao.findCourseCodesByStudentId(studentId);
     // 檢查學生是否有選課
     if (CollectionUtils.isEmpty(studentCourseCodesList)) {
-      return new CourseResponse(RtnCode.STUDENT_NOT_EXIST_ERROR.getMessage());
+      return new CourseResponse(RtnCode.NOT_SELECTED_ERROR.getMessage());
     }
     // 透過選課資料庫中的課程代碼去尋找課程資料庫內相符代碼的課程資訊
     // 創建集合紀錄多筆課程
@@ -335,7 +338,8 @@ public class CourseServiceImpl implements CourseService {
       String courseCode = s.getCourseCode();
       if (StringUtils.hasText(courseCode)) {
         Optional<Course> opCourse = courseDao.findById(courseCode);
-        if (!opCourse.isPresent()) {
+        // 檢查是否有選修該堂課程
+        if (opCourse.isPresent()) {
           return new CourseResponse(RtnCode.NO_COURSE_FOUND_ERROR.getMessage());
         }
         Course course = opCourse.get();

@@ -38,14 +38,13 @@ public class Course {
 
   }
 
-  public Course(String courseCode, String courseName, int dayOfWeek, LocalTime startTime, LocalTime endTime, int credits, int enrollmentCount) {
+  public Course(String courseCode, String courseName, int dayOfWeek, LocalTime startTime, LocalTime endTime, int credits) {
     this.courseCode = courseCode;
     this.courseName = courseName;
     this.dayOfWeek = dayOfWeek;
     this.startTime = startTime;
     this.endTime = endTime;
     this.credits = credits;
-    this.enrollmentCount = enrollmentCount;
   }
 
   public String getCourseCode() {
