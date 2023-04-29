@@ -2,7 +2,6 @@ package com.example.course_select_system.service.ifs;
 
 
 import com.example.course_select_system.entity.Course;
-import com.example.course_select_system.entity.Student;
 import com.example.course_select_system.vo.CourseResponse;
 
 import java.util.List;

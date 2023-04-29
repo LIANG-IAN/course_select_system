@@ -39,7 +39,7 @@ public class CourseServiceImpl implements CourseService {
   @Override
   public CourseResponse addCourse(Course course) {
     // 檢查課程資訊是否都符合規範
-    if (isInvalidCourse(course)) {
+    if (!isInvalidCourse(course)) {
       return new CourseResponse(RtnCode.INCORRECT_COURSE_INFO_ERROR.getMessage());
     }
     // 檢查是否有重複課程
@@ -360,11 +360,11 @@ public class CourseServiceImpl implements CourseService {
 
   private boolean isInvalidCourse(Course course) {
     // 檢查課程代碼是否為空
-    return !StringUtils.hasText(course.getCourseCode())
+    return StringUtils.hasText(course.getCourseCode())
             // 檢查課程名稱是否為空
-            || !StringUtils.hasText(course.getCourseName())
+            || StringUtils.hasText(course.getCourseName())
             // 檢查課程星期是否為一到五
-            || course.getDayOfWeek() <= 1 || course.getDayOfWeek() >= 5
+            || course.getDayOfWeek() >= 1 || course.getDayOfWeek() <= 5
             // 檢查課程開始時間
             || course.getStartTime().getHour() >= 8
             && course.getStartTime().getHour() <= 17
