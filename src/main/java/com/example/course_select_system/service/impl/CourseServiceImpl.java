@@ -39,7 +39,7 @@ public class CourseServiceImpl implements CourseService {
   @Override
   public CourseResponse addCourse(Course course) {
     // 檢查課程資訊是否都符合規範
-    if (!isInvalidCourse(course)) {
+    if (course == null) {
       return new CourseResponse(RtnCode.INCORRECT_COURSE_INFO_ERROR.getMessage());
     }
     // 檢查是否有重複課程

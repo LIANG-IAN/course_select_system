@@ -26,7 +26,7 @@ class CourseSelectSystemApplicationTests {
   final Course c2 = new Course("E11", "應用日文", 2, LocalTime.of(15, 0, 0), LocalTime.of(17, 0, 0), 3);
 
   //更新課程的Course
-  final Course c4 = new Course("J22", "應用日文", 2, LocalTime.of(13, 0, 0), LocalTime.of(15, 0, 0), 3);
+  final Course c4 = new Course("J23", "應用日文", 2, LocalTime.of(13, 0, 0), LocalTime.of(15, 0, 0), 3);
 
   //課程代碼不存在的Course
   final Course c5 = new Course("J10", "應用日文", 2, LocalTime.of(13, 0, 0), LocalTime.of(15, 0, 0), 3);
@@ -355,27 +355,5 @@ class CourseSelectSystemApplicationTests {
   }
 
   //@BeforeEach
-  public void beforeEach() {
-    //增加課程，J23 應用日文
-    //courseService.addCourse(c1);
 
-    //選課，P23 體育課
-    courseService.selectCourse(standardCourseList, "005");
-
-    //創建學生，009 安妮亞
-    courseService.createStudent(newStudentId, newStudentName);
-  }
-
-  @AfterEach
-  public void afterEach() {
-
-    //刪除課程，J23 應用日文
-    courseService.deleteCourse(c1.getCourseCode());
-
-    //退課，P23 體育課
-    courseService.dropCourse("P23", "005");
-
-    //刪除學生，009 安妮亞
-    courseService.deleteStudent(newStudentId);
-  }
 }
