@@ -12,7 +12,6 @@ public enum RtnCode {
   SELECT_COURSE_SUCCESS("200", "選修成功"),
   UPDATE_COURSE_SUCCESS("200", "更新課程成功"),
   CANNOT_DELETE_COURSE_ERROR("400", "仍有學生選修該課程，無法刪除"),
-  CANNOT_DELETE_STUDENT_ERROR("400", "該學生仍有選修課程，無法刪除"),
   COURSE_CODE_ERROR("400", "輸入課程代碼錯誤"),
   COURSE_FULL_ERROR("400", "該課程已滿"),
   COURSE_NOT_FOUND_ERROR("404", "找不到該課程"),
@@ -24,7 +23,7 @@ public enum RtnCode {
   INPUT_EMPTY_VALUE_ERROR("400", "輸入值為空"),
   INPUT_NOT_ALLOWED_BLANK_ERROR("400", "輸入不得為空白"),
   NO_COURSE_FOUND_ERROR("400", "無找到課程"),
-  NO_SAME_COURSE_ERROR("400", "無同名課程"),
+  NO_SAME_COURSE_ERROR("404", "無同名課程"),
   NOT_SELECTED_ERROR("400", "您沒有選修該門課"),
   STUDENT_NOT_EXIST_ERROR("400", "學生不存在");
 
@@ -33,6 +32,7 @@ public enum RtnCode {
   private String code;
 
   private String message;
+
 
   RtnCode(String code, String message) {
     this.code = code;

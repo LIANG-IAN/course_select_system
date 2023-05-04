@@ -25,6 +25,8 @@ public class Student {
   }
 
   public Student(String studentId, String name) {
+    this.studentId = studentId;
+    this.name = name;
   }
 
   public String getStudentId() {

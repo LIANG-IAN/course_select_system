@@ -1,5 +1,6 @@
 package com.example.course_select_system.service.impl;
 
+import com.example.course_select_system.constants.ConstantData;
 import com.example.course_select_system.constants.RtnCode;
 import com.example.course_select_system.entity.Course;
 import com.example.course_select_system.entity.Student;
@@ -11,16 +12,16 @@ import com.example.course_select_system.service.ifs.CourseService;
 import com.example.course_select_system.vo.CourseResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 
 @Service
+@Transactional
 public class CourseServiceImpl implements CourseService {
 
   private final CourseDao courseDao;
@@ -45,6 +46,10 @@ public class CourseServiceImpl implements CourseService {
     // 檢查是否有重複課程
     if (courseDao.existsById(course.getCourseCode())) {
       return new CourseResponse(RtnCode.DUPLICATE_COURSE_ERROR.getMessage());
+    }
+    // 檢查課程資訊是否符合規定
+    if (!isInvalidCourse(course)) {
+      return new CourseResponse(RtnCode.INCORRECT_COURSE_INFO_ERROR.getMessage());
     }
     // 添加至資料庫
     courseDao.save(course);
@@ -73,27 +78,30 @@ public class CourseServiceImpl implements CourseService {
       oldCourse.setCourseName(course.getCourseName());
     }
     // 更新課程星期
-    if (course.getDayOfWeek() >= 1
-            || course.getDayOfWeek() <= 5
+    if (course.getDayOfWeek() >= ConstantData.DAY_OF_WEEK_START
+            || course.getDayOfWeek() <= ConstantData.DAY_OF_WEEK_END
             && course.getDayOfWeek() != oldCourse.getDayOfWeek()) {
       oldCourse.setDayOfWeek(course.getDayOfWeek());
     }
     // 更新課程開始時間
-    if (course.getStartTime().getHour() >= 8
-            && course.getStartTime().getHour() <= 17
-            && !course.getStartTime().equals(oldCourse.getStartTime())) {
+    if (course.getStartTime().getHour() >= ConstantData.START_TIME_START
+            && course.getStartTime().getHour() <= ConstantData.START_TIME_END
+
+            && course.getStartTime().getHour() < course.getEndTime().getHour()
+            && !course.getStartTime().equals(oldCourse.getStartTime())
+            && course.getStartTime().getHour() != course.getEndTime().getHour()) {
       oldCourse.setStartTime(course.getStartTime());
     }
     // 更新課程結束時間
-    // 注意下課時間不得小於上課時間
     if (course.getEndTime().getHour() > oldCourse.getStartTime().getHour()
-            && course.getEndTime().getHour() <= 17
-            && !course.getEndTime().equals(oldCourse.getEndTime())) {
+            && course.getEndTime().getHour() <= ConstantData.START_TIME_END
+            && !course.getEndTime().equals(oldCourse.getEndTime())
+            && course.getStartTime().getHour() != course.getEndTime().getHour()) {
       oldCourse.setEndTime(course.getEndTime());
     }
     // 更新學分
-    if (course.getCredits() >= 1
-            && course.getCredits() <= 3
+    if (course.getCredits() >= ConstantData.COURSE_CREDITS_LEST
+            && course.getCredits() <= ConstantData.COURSE_CREDITS_MAX
             && course.getCredits() != oldCourse.getCredits()) {
       oldCourse.setCredits(course.getCredits());
     }
@@ -134,8 +142,10 @@ public class CourseServiceImpl implements CourseService {
     if (opStudent.isEmpty()) {
       return new CourseResponse(RtnCode.STUDENT_NOT_EXIST_ERROR.getMessage());
     }
+    // 檢查courseCode內是否有重複課程代碼
+    Set<String> courseCodeSet = new HashSet<>(courseCode);
     Student thisStudent = opStudent.get();
-    for (String s : courseCode) {
+    for (String s : courseCodeSet) {
       // 檢查輸入的課程名稱
       if (!StringUtils.hasText(s)) {
         // 檢查輸入的課程代碼是否為空
@@ -148,25 +158,30 @@ public class CourseServiceImpl implements CourseService {
       }
       Course course = opCourse.get();
       // 檢查該課程是否已滿
-      if (course.getEnrollmentCount() == 3) {
+      if (course.getEnrollmentCount() == ConstantData.ENROLLMENT) {
         return new CourseResponse(RtnCode.COURSE_FULL_ERROR.getMessage());
       }
       // 檢查學生是否學分超過10
       int credit = thisStudent.getCredit() + course.getCredits();
-      if (credit > 10) {
+      if (credit > ConstantData.STUDENT_CREDITS) {
         return new CourseResponse(RtnCode.CREDIT_OVER_LIMIT_ERROR.getMessage());
       }
       // 檢查選課是否衝堂
       // 取得學生已選修課程代碼名單
       List<StudentCourseCodes> selectedCourses = studentCourseCodesDao.findCourseCodesByStudentId(studentId);
       // 課程代碼為空代表無選修任何課程，直接跳過for迴圈
-      if (selectedCourses != null) {
+      if (!CollectionUtils.isEmpty(selectedCourses)) {
         for (StudentCourseCodes sc : selectedCourses) {
           // 檢查課程代碼不為空
           if (sc != null) {
             String strSelectedCourses = sc.getCourseCode();
             //檢查資料庫取出的資料
             Optional<Course> optionalCourse = courseDao.findById(strSelectedCourses);
+            // 資料庫防呆
+            if (optionalCourse.isEmpty()) {
+              return new CourseResponse(RtnCode.COURSE_NOT_FOUND_ERROR.getMessage());
+            }
+            // 通過撈資料庫與下方衝堂判斷，可以間接判斷學生欲選課程是否跟學生已選課程重複
             Course c = optionalCourse.get();
             // 取得已選修的課程星期
             int dayOfWeek = c.getDayOfWeek();
@@ -195,9 +210,7 @@ public class CourseServiceImpl implements CourseService {
       // 添加選課人數至資料庫
       courseDao.save(course);
       // 儲存學生ID及選課代碼至StudentCourseCodes類型變數裡
-      StudentCourseCodes studentCourseCodes = new StudentCourseCodes();
-      studentCourseCodes.setStudentId(studentId);
-      studentCourseCodes.setCourseCode(course.getCourseCode());
+      StudentCourseCodes studentCourseCodes = new StudentCourseCodes(studentId,course.getCourseCode());
       // 添加學分至選修學生資料庫
       thisStudent.setCredit(credit);
       // 更新選課代碼至資料庫
@@ -282,7 +295,7 @@ public class CourseServiceImpl implements CourseService {
     List<Course> courseList = courseDao.findCourseByCourseName(courseName);
     // 檢查是否有相同名稱課程存在
     if (CollectionUtils.isEmpty(courseList)) {
-      return new CourseResponse(RtnCode.NO_SAME_COURSE_ERROR.getMessage());
+      return new CourseResponse(RtnCode.COURSE_NOT_FOUND_ERROR.getMessage());
     }
     return new CourseResponse(courseList, RtnCode.FIND_SUCCESS.getMessage());
   }
@@ -298,8 +311,7 @@ public class CourseServiceImpl implements CourseService {
     if (!opCourse.isPresent()) {
       return new CourseResponse(RtnCode.COURSE_NOT_FOUND_ERROR.getMessage());
     }
-    Course course = opCourse.get();
-    return new CourseResponse(course, RtnCode.FIND_SUCCESS.getCode());
+    return new CourseResponse(opCourse.get(), RtnCode.FIND_SUCCESS.getCode());
   }
 
   @Override
@@ -313,9 +325,7 @@ public class CourseServiceImpl implements CourseService {
       return new CourseResponse(RtnCode.DUPLICATE_STUDENT_ID_ERROR.getMessage());
     }
     // 將ID與姓名打包成Student類型資料
-    Student student = new Student();
-    student.setStudentId(studentId);
-    student.setName(studentName);
+    Student student = new Student(studentId, studentName);
     // 創建新學生至資料庫
     studentDao.save(student);
     return new CourseResponse(student, RtnCode.ADD_STUDENT_SUCCESS.getMessage());
@@ -324,7 +334,7 @@ public class CourseServiceImpl implements CourseService {
   @Override
   public CourseResponse deleteStudent(String studentId) {
     // 檢查學生Id是否為空
-    if (studentId == null) {
+    if (!StringUtils.hasText(studentId)) {
       return new CourseResponse(RtnCode.INPUT_NOT_ALLOWED_BLANK_ERROR.getMessage());
     }
     // 先檢查學生是否存在
@@ -339,14 +349,14 @@ public class CourseServiceImpl implements CourseService {
       if (StringUtils.hasText(courseCode)) {
         Optional<Course> opCourse = courseDao.findById(courseCode);
         // 檢查是否有選修該堂課程
-        if (opCourse.isPresent()) {
+        if (!opCourse.isPresent()) {
           return new CourseResponse(RtnCode.NO_COURSE_FOUND_ERROR.getMessage());
         }
         Course course = opCourse.get();
         //課程退選
-        int enrollment_count = course.getEnrollmentCount();
-        enrollment_count--;
-        course.setEnrollmentCount(enrollment_count);
+        int enrollmentCount = course.getEnrollmentCount();
+        enrollmentCount--;
+        course.setEnrollmentCount(enrollmentCount);
         //更新課程
         courseDao.save(course);
         // 將學生從選課資料庫中刪除
@@ -364,14 +374,14 @@ public class CourseServiceImpl implements CourseService {
             // 檢查課程名稱是否為空
             || StringUtils.hasText(course.getCourseName())
             // 檢查課程星期是否為一到五
-            || course.getDayOfWeek() >= 1 || course.getDayOfWeek() <= 5
+            || course.getDayOfWeek() >= ConstantData.DAY_OF_WEEK_START || course.getDayOfWeek() <= ConstantData.DAY_OF_WEEK_END
             // 檢查課程開始時間
-            || course.getStartTime().getHour() >= 8
-            && course.getStartTime().getHour() <= 17
+            || course.getStartTime().getHour() >= ConstantData.START_TIME_START
+            && course.getStartTime().getHour() <= ConstantData.START_TIME_END
             // 檢查課程結束時間
             || course.getEndTime().getHour() > course.getStartTime().getHour()
-            && course.getEndTime().getHour() <= 17
+            && course.getEndTime().getHour() <= ConstantData.START_TIME_END
             // 檢查學分是否1~3
-            || course.getCredits() >= 1 || course.getCredits() <= 3;
+            || course.getCredits() >= ConstantData.COURSE_CREDITS_LEST || course.getCredits() <= ConstantData.COURSE_CREDITS_MAX;
   }
 }
