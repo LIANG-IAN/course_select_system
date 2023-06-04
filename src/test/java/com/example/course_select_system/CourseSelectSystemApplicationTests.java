@@ -2,6 +2,7 @@ package com.example.course_select_system;
 
 import com.example.course_select_system.constants.RtnCode;
 import com.example.course_select_system.entity.Course;
+import com.example.course_select_system.repository.CourseDao;
 import com.example.course_select_system.service.impl.CourseServiceImpl;
 import com.example.course_select_system.vo.CourseResponse;
 import org.junit.jupiter.api.*;
@@ -63,6 +64,7 @@ class CourseSelectSystemApplicationTests {
 
   //有選修資料庫沒資料的課程的學生Id
   final String studentEnrolledCourseNoExist = "104";
+
 
   @Test
   //增加課程：成功

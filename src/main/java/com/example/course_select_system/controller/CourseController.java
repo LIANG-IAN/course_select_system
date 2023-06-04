@@ -4,13 +4,10 @@ import com.example.course_select_system.service.ifs.CourseService;
 import com.example.course_select_system.vo.CourseRequest;
 import com.example.course_select_system.vo.CourseResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-
-import javax.xml.transform.Result;
+import org.springframework.web.bind.annotation.*;
 
 
+@CrossOrigin
 @RestController
 public class CourseController {
   @Autowired
@@ -64,6 +61,11 @@ public class CourseController {
   @PostMapping(value = "creat_student")
   public CourseResponse createStudent(@RequestBody CourseRequest courseRequest) {
     return courseService.createStudent(courseRequest.getStudentId(),courseRequest.getStudentName());
+  }
+
+  @GetMapping(value = "find_all")
+  public CourseResponse findAll(){
+    return courseService.findAll();
   }
 
 }

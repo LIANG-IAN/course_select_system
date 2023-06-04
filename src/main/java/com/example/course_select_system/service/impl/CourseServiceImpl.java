@@ -38,6 +38,12 @@ public class CourseServiceImpl implements CourseService {
   }
 
   @Override
+  public CourseResponse findAll(){
+    return new CourseResponse(courseDao.findAll());
+  }
+
+
+  @Override
   public CourseResponse addCourse(Course course) {
     // 檢查課程資訊是否都符合規範
     if (course == null) {

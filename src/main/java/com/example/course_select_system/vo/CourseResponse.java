@@ -18,6 +18,10 @@ public class CourseResponse {
 
   }
 
+  public CourseResponse(List<Course> courseList) {
+    this.courseList = courseList;
+  }
+
   public CourseResponse(String message) {
     this.message = message;
   }

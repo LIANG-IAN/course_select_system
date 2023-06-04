@@ -30,5 +30,7 @@ public interface CourseService {
 
   public CourseResponse getSelectedCoursesByStudentId(String studentId);
 
+  public CourseResponse findAll();
+
 
 }
